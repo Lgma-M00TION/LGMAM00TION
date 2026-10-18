@@ -1,0 +1,200 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LGMAM00TION SCANNER</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#0b0912;color:#f5f1ff;
+  font-family:Arial,sans-serif;padding:20px
+}
+main{max-width:650px;margin:auto}
+h1{color:#b99aff;font-size:28px}
+.panel{
+  background:#191426;border:1px solid #39304d;
+  border-radius:14px;padding:16px;margin:14px 0
+}
+input,select,textarea,button{
+  width:100%;padding:12px;margin:8px 0;
+  border-radius:8px;border:1px solid #514567;
+  background:#100d19;color:white;font-size:16px
+}
+button{
+  background:#7952ce;border:0;font-weight:bold;
+  cursor:pointer
+}
+img{width:100%;margin-top:12px;border-radius:8px}
+small{color:#bdb2d2}
+</style>
+</head>
+
+<body>
+<main>
+  <h1>LGMAM00TION SCANNER</h1>
+  <p>FREE CHART REVIEW WORKSPACE</p>
+
+  <section class="panel">
+    <h2>1. Upload MT5 screenshot</h2>
+    <input id="file" type="file" accept="image/*">
+    <img id="preview" hidden alt="Uploaded trading chart">
+    <p id="status">
+      <small>Select a chart screenshot to begin.</small>
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Chart observations</h2>
+
+    <label for="symbol">Trading symbol</label>
+    <select id="symbol">
+      <option>XAUUSD</option>
+      <option>NAS100</option>
+      <option>EURUSD</option>
+      <option>GBPUSD</option>
+      <option>Other</option>
+    </select>
+
+    <label for="tf">Timeframe</label>
+    <select id="tf">
+      <option>M5</option>
+      <option>M15</option>
+      <option>M30</option>
+      <option>H1</option>
+      <option>H4</option>
+      <option>D1</option>
+    </select>
+
+    <label for="trend">Observed trend</label>
+    <select id="trend">
+      <option>Not assessed</option>
+      <option>Uptrend</option>
+      <option>Downtrend</option>
+      <option>Sideways / unclear</option>
+    </select>
+
+    <label for="notes">Chart notes</label>
+    <textarea id="notes" rows="4"
+      placeholder="Record support, resistance, candle patterns and other observations..."></textarea>
+
+    <button id="save">Save Chart Review</button>
+    <button id="show">View Saved Reviews</button>
+    <div id="result" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Review History</h2>
+    <div id="history">No reviews loaded.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Important Notice</h2>
+    <small>
+      This version saves observations and previews screenshots.
+      It does not automatically interpret chart images, calculate
+      live indicators, generate verified BUY/SELL signals or
+      connect to MT5. Always independently verify trading decisions.
+    </small>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+$("file").addEventListener("change", event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    $("status").textContent = "Please select an image.";
+    return;
+  }
+
+  if (file.size > 8 * 1024 * 1024) {
+    $("status").textContent =
+      "Image too large. Please choose an image under 8 MB.";
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    $("preview").src = reader.result;
+    $("preview").hidden = false;
+    $("status").textContent =
+      "Screenshot uploaded successfully.";
+  };
+
+  reader.readAsDataURL(file);
+});
+
+function getReviews() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("lgmam00tion-reviews") || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
+
+$("save").addEventListener("click", () => {
+  const review = {
+    date: new Date().toLocaleString(),
+    symbol: $("symbol").value,
+    timeframe: $("tf").value,
+    trend: $("trend").value,
+    notes: $("notes").value
+  };
+
+  const reviews = getReviews();
+  reviews.unshift(review);
+
+  try {
+    localStorage.setItem(
+      "lgmam00tion-reviews",
+      JSON.stringify(reviews.slice(0, 30))
+    );
+
+    $("result").textContent = "Chart review saved!";
+    renderHistory();
+  } catch {
+    $("result").textContent =
+      "Could not save. Please copy your notes somewhere safe.";
+  }
+});
+
+function renderHistory() {
+  const history = $("history");
+  history.replaceChildren();
+
+  getReviews().forEach(review => {
+    const item = document.createElement("article");
+    item.className = "panel";
+
+    const heading = document.createElement("strong");
+    heading.textContent =
+      `${review.symbol} · ${review.timeframe} · ${review.trend}`;
+
+    const date = document.createElement("p");
+    date.textContent = review.date;
+
+    const notes = document.createElement("p");
+    notes.textContent = review.notes || "No notes added.";
+
+    item.append(heading, date, notes);
+    history.append(item);
+  });
+
+  if (!history.children.length) {
+    history.textContent = "No saved reviews yet.";
+  }
+}
+
+$("show").addEventListener("click", renderHistory);
+</script>
+</body>
+</html>
